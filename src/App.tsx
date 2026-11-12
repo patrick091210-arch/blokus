@@ -335,7 +335,7 @@ export function App() {
           </div>
 
           {/* Centered Invisible-UI Arena: Board + Frameless Floating Piece Dock */}
-          <main className="flex h-full w-full flex-col items-center justify-center gap-8 px-6 lg:flex-row lg:gap-14">
+          <main className="flex h-full w-full flex-col items-center justify-center gap-8 px-6 lg:flex-row lg:gap-20">
             <div className="relative flex flex-col items-center">
               <BoardStage
                 board={state.board}
@@ -412,7 +412,7 @@ export function App() {
 
             {!isGameOver && (
               <PieceTray
-                color={currentSeat?.color ?? '#38a8ff'}
+                color={currentSeat?.color ?? '#1684ff'}
                 available={currentSeat?.available ?? []}
                 playablePieces={playablePieces}
                 selectedPiece={state.selectedPiece}

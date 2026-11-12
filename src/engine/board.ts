@@ -17,7 +17,7 @@ export const OBSTACLE_CELL = -2;
 export const CLASSIC_BOARD_SIZE = 20;
 export const DUO_BOARD_SIZE = 14;
 
-export const PLAYER_COLORS = ['#42b6ff', '#ffb447', '#ff5c70', '#51d7a4'] as const;
+export const PLAYER_COLORS = ['#1684ff', '#f5a518', '#ef2d4a', '#0dbb85'] as const;
 export const PLAYER_NAMES = ['Blue', 'Amber', 'Coral', 'Jade'] as const;
 
 export const CLASSIC_START_CORNERS: readonly Point[] = [

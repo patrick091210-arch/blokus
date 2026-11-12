@@ -2,47 +2,62 @@
 
 :root,
 [data-theme="dark"] {
-  --bg-canvas: #0d1116;
-  --bg-glow: rgba(38, 52, 66, 0.38);
-  --fg-primary: #eef0ed;
-  --fg-muted: rgba(238, 240, 237, 0.42);
-  --fg-whisper: rgba(238, 240, 237, 0.2);
-  --board-surface: #131920;
-  --board-cell: #151c24;
-  --board-groove: rgba(255, 255, 255, 0.042);
-  --board-obstacle: rgba(255, 255, 255, 0.07);
-  --board-shadow:
-    0 30px 70px -18px rgba(0, 0, 0, 0.78),
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --card-surface: rgba(255, 255, 255, 0.03);
-  --card-surface-hover: rgba(255, 255, 255, 0.06);
-  --card-border: rgba(255, 255, 255, 0.08);
-  --ao-shadow: rgba(0, 0, 0, 0.62);
-  --shockwave-rgb: 220, 238, 255;
+  --bg-canvas: #0c1015;
+  --bg-glow: rgba(36, 50, 66, 0.34);
+  --fg-primary: #eef1f0;
+  --fg-muted: rgba(238, 241, 240, 0.46);
+  --fg-whisper: rgba(238, 241, 240, 0.22);
+  --bezel-surface: linear-gradient(135deg, #1b232c 0%, #11161c 100%);
+  --bezel-shadow:
+    16px 26px 60px -14px rgba(0, 0, 0, 0.82),
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.11),
+    inset -1.5px -1.5px 0 rgba(0, 0, 0, 0.55);
+  --well-surface: #0f141a;
+  --well-lip:
+    inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.72),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.05);
+  --slot-surface: #141b22;
+  --slot-rib-light: rgba(255, 255, 255, 0.065);
+  --slot-rib-dark: rgba(0, 0, 0, 0.52);
+  --board-obstacle: linear-gradient(135deg, #252f3a, #1a222b);
+  --card-surface: rgba(24, 32, 40, 0.72);
+  --card-surface-hover: rgba(32, 42, 52, 0.88);
+  --card-border: rgba(255, 255, 255, 0.085);
+  --card-shadow:
+    10px 18px 38px -10px rgba(0, 0, 0, 0.68),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.09);
+  --ao-radial: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.68) 0%, rgba(0, 0, 0, 0.26) 46%, transparent 74%);
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-gravity: cubic-bezier(0.58, 0.04, 0.94, 0.44);
 }
 
 [data-theme="light"] {
-  --bg-canvas: #f2efe9;
-  --bg-glow: rgba(255, 255, 255, 0.9);
-  --fg-primary: #181e24;
-  --fg-muted: rgba(24, 30, 36, 0.44);
-  --fg-whisper: rgba(24, 30, 36, 0.22);
-  --board-surface: #e5e1d8;
-  --board-cell: #ebe7df;
-  --board-groove: rgba(20, 26, 32, 0.062);
-  --board-obstacle: rgba(20, 26, 32, 0.12);
-  --board-shadow:
-    0 28px 60px -20px rgba(24, 30, 38, 0.18),
-    0 0 0 1px rgba(20, 26, 32, 0.07),
-    inset 0 2px 4px rgba(0, 0, 0, 0.04);
-  --card-surface: rgba(255, 255, 255, 0.62);
-  --card-surface-hover: rgba(255, 255, 255, 0.88);
-  --card-border: rgba(20, 26, 32, 0.08);
-  --ao-shadow: rgba(24, 30, 38, 0.24);
-  --shockwave-rgb: 40, 56, 72;
+  --bg-canvas: #f1eee8;
+  --bg-glow: rgba(255, 255, 255, 0.92);
+  --fg-primary: #181f26;
+  --fg-muted: rgba(24, 31, 38, 0.48);
+  --fg-whisper: rgba(24, 31, 38, 0.24);
+  --bezel-surface: linear-gradient(135deg, #eae6de 0%, #dad5cb 100%);
+  --bezel-shadow:
+    16px 26px 54px -16px rgba(24, 32, 42, 0.22),
+    0 2px 6px rgba(24, 32, 42, 0.08),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.9),
+    inset -1.5px -1.5px 0 rgba(24, 32, 42, 0.14);
+  --well-surface: #d6d1c7;
+  --well-lip:
+    inset 1.5px 1.5px 3px rgba(24, 32, 42, 0.18),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.75);
+  --slot-surface: #e6e2d9;
+  --slot-rib-light: rgba(255, 255, 255, 0.72);
+  --slot-rib-dark: rgba(24, 32, 42, 0.11);
+  --board-obstacle: linear-gradient(135deg, #c9c3b8, #b8b1a5);
+  --card-surface: rgba(255, 255, 255, 0.74);
+  --card-surface-hover: rgba(255, 255, 255, 0.94);
+  --card-border: rgba(24, 31, 38, 0.09);
+  --card-shadow:
+    10px 18px 36px -12px rgba(24, 32, 42, 0.15),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.95);
+  --ao-radial: radial-gradient(ellipse at center, rgba(24, 32, 42, 0.28) 0%, rgba(24, 32, 42, 0.1) 46%, transparent 74%);
 }
 
 * {
@@ -86,29 +101,73 @@ button:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-/* Studio Matte Canvas Atmosphere */
+/* Unified 135° Top-Left Studio Light Canvas */
 .studio-canvas {
   background:
-    radial-gradient(circle at 50% 46%, var(--bg-glow) 0%, transparent 64%),
+    radial-gradient(circle at 38% 34%, var(--bg-glow) 0%, transparent 66%),
     var(--bg-canvas);
-  transition: background-color 420ms var(--ease-spring), color 420ms var(--ease-spring);
+  transition: background-color 400ms var(--ease-spring), color 400ms var(--ease-spring);
 }
 
-/* Translucent Acrylic / Gemstone Unit Tile */
-.acrylic-tile {
-  position: relative;
-  background-color: color-mix(in srgb, var(--tile-color, #38a8ff) 86%, transparent);
-  background-image:
-    radial-gradient(125% 125% at 26% 20%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.06) 45%, transparent 65%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.22) 0%, rgba(0, 0, 0, 0.22) 100%);
+/* Concentric Physical Board Bezel (R_outer = 14px, Padding = 10px, R_inner = 4px) */
+.board-bezel {
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--bezel-surface);
+  box-shadow: var(--bezel-shadow);
+}
+
+.board-well {
+  border-radius: 4px;
+  background: var(--well-surface);
+  box-shadow: var(--well-lip);
+}
+
+/* Physical Raised Cross-Rib Slot under 135° Top-Left Light */
+.board-slot {
+  background: var(--slot-surface);
   box-shadow:
-    inset 1.2px 1.2px 0.6px rgba(255, 255, 255, 0.56),
-    inset -1.2px -1.6px 1px rgba(0, 0, 0, 0.3),
-    0 3px 8px -1px color-mix(in srgb, var(--tile-color, #38a8ff) 38%, rgba(0, 0, 0, 0.36));
-  backdrop-filter: blur(2px);
+    inset 1px 1px 1px var(--slot-rib-dark),
+    inset -0.75px -0.75px 0 var(--slot-rib-light);
 }
 
-/* 3D Extruded Hexahedral Voxel Prism for Slam Choreography */
+/* Injection-Molded Translucent Polycarbonate Unit (85% optical density, sees grid underneath) */
+.poly-cell {
+  position: relative;
+  background-color: color-mix(in srgb, var(--tile-color, #1684ff) 85%, transparent);
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.24) 0%,
+    rgba(255, 255, 255, 0.03) 46%,
+    rgba(0, 0, 0, 0.22) 100%
+  );
+}
+
+/* Iconic Blokus Inner Stepped Facet (~58% center refractive square) */
+.poly-facet {
+  position: absolute;
+  inset: 21%;
+  border-radius: 1.5px;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.01) 52%,
+    rgba(0, 0, 0, 0.12) 100%
+  );
+  border-top: 1px solid rgba(255, 255, 255, 0.48);
+  border-left: 1px solid rgba(255, 255, 255, 0.36);
+  border-right: 1px solid rgba(0, 0, 0, 0.28);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.36);
+}
+
+/* Pre-baked GPU Radial AO Shadow (Zero runtime filter:blur!) */
+.gpu-ao-shadow {
+  background: var(--ao-radial);
+  will-change: transform, opacity;
+}
+
+/* 3D Extruded Connected Hexahedral Voxel Prism for Slam Choreography */
 .voxel-prism {
   position: absolute;
   transform-style: preserve-3d;
@@ -117,15 +176,14 @@ button:focus-visible {
 .voxel-face-front {
   position: absolute;
   inset: 0;
-  border-radius: 3px;
-  transform: translateZ(var(--prism-depth, 18px));
-  background-color: var(--tile-color);
-  background-image:
-    radial-gradient(120% 120% at 25% 20%, rgba(255, 255, 255, 0.55) 0%, transparent 58%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.24), rgba(0, 0, 0, 0.2));
-  box-shadow:
-    inset 1.5px 1.5px 0.5px rgba(255, 255, 255, 0.65),
-    inset -1.5px -1.5px 1px rgba(0, 0, 0, 0.32);
+  transform: translateZ(var(--prism-depth, 16px));
+  background-color: color-mix(in srgb, var(--tile-color) 90%, transparent);
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.04) 48%,
+    rgba(0, 0, 0, 0.22) 100%
+  );
 }
 
 .voxel-face-top {
@@ -133,10 +191,10 @@ button:focus-visible {
   left: 0;
   right: 0;
   top: 0;
-  height: var(--prism-depth, 18px);
+  height: var(--prism-depth, 16px);
   transform-origin: top center;
-  transform: translateZ(var(--prism-depth, 18px)) rotateX(-90deg);
-  background: color-mix(in srgb, var(--tile-color) 78%, white 22%);
+  transform: translateZ(var(--prism-depth, 16px)) rotateX(-90deg);
+  background: color-mix(in srgb, var(--tile-color) 76%, white 24%);
 }
 
 .voxel-face-bottom {
@@ -144,10 +202,10 @@ button:focus-visible {
   left: 0;
   right: 0;
   bottom: 0;
-  height: var(--prism-depth, 18px);
+  height: var(--prism-depth, 16px);
   transform-origin: bottom center;
-  transform: translateZ(var(--prism-depth, 18px)) rotateX(90deg);
-  background: color-mix(in srgb, var(--tile-color) 62%, black 38%);
+  transform: translateZ(var(--prism-depth, 16px)) rotateX(90deg);
+  background: color-mix(in srgb, var(--tile-color) 56%, black 44%);
 }
 
 .voxel-face-left {
@@ -155,10 +213,10 @@ button:focus-visible {
   top: 0;
   bottom: 0;
   left: 0;
-  width: var(--prism-depth, 18px);
+  width: var(--prism-depth, 16px);
   transform-origin: center left;
-  transform: translateZ(var(--prism-depth, 18px)) rotateY(90deg);
-  background: color-mix(in srgb, var(--tile-color) 86%, white 14%);
+  transform: translateZ(var(--prism-depth, 16px)) rotateY(90deg);
+  background: color-mix(in srgb, var(--tile-color) 84%, white 16%);
 }
 
 .voxel-face-right {
@@ -166,10 +224,10 @@ button:focus-visible {
   top: 0;
   bottom: 0;
   right: 0;
-  width: var(--prism-depth, 18px);
+  width: var(--prism-depth, 16px);
   transform-origin: center right;
-  transform: translateZ(var(--prism-depth, 18px)) rotateY(-90deg);
-  background: color-mix(in srgb, var(--tile-color) 70%, black 30%);
+  transform: translateZ(var(--prism-depth, 16px)) rotateY(-90deg);
+  background: color-mix(in srgb, var(--tile-color) 64%, black 36%);
 }
 
 @keyframes logo-breathe {
@@ -177,59 +235,58 @@ button:focus-visible {
     transform: translate3d(0, 0px, 0);
   }
   50% {
-    transform: translate3d(0, -5px, 0);
+    transform: translate3d(0, -4px, 0);
   }
 }
 
 @keyframes corner-breathe {
   0%, 100% {
-    opacity: 0.42;
-    transform: scale(0.96);
+    opacity: 0.36;
+    transform: scale3d(0.96, 0.96, 1);
   }
   50% {
+    opacity: 0.82;
+    transform: scale3d(1.05, 1.05, 1);
+  }
+}
+
+@keyframes tile-snap-in {
+  0% {
+    transform: scale3d(1.09, 1.09, 1);
     opacity: 0.88;
-    transform: scale(1.06);
+  }
+  100% {
+    transform: scale3d(1, 1, 1);
+    opacity: 1;
   }
 }
 
-@keyframes tile-land {
+@keyframes victory-wave {
   0% {
-    transform: scale(1.14);
-    filter: brightness(1.25);
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  }
+  40% {
+    transform: translate3d(-1px, -1.5px, 0) scale3d(1.06, 1.06, 1);
   }
   100% {
-    transform: scale(1);
-    filter: brightness(1);
-  }
-}
-
-@keyframes victory-shimmer {
-  0% {
-    filter: brightness(1);
-    transform: scale(1);
-  }
-  38% {
-    filter: brightness(1.55);
-    transform: scale(1.07);
-  }
-  100% {
-    filter: brightness(1.08);
-    transform: scale(1);
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
   }
 }
 
 .animate-logo-breathe {
-  animation: logo-breathe 6.4s ease-in-out infinite;
+  animation: logo-breathe 6s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-corner-breathe {
   animation: corner-breathe 2.8s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 .animate-tile-land {
-  animation: tile-land 280ms var(--ease-spring) both;
+  animation: tile-snap-in 240ms var(--ease-spring) both;
 }
 
 .animate-victory-wave {
-  animation: victory-shimmer 820ms var(--ease-spring) both;
+  animation: victory-wave 760ms var(--ease-spring) both;
 }

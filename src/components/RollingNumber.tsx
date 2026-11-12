@@ -4,20 +4,20 @@ type RollingNumberProps = {
   readonly value: number;
   readonly active?: boolean;
   readonly winner?: boolean;
+  readonly align: 'left' | 'right';
   readonly accentColor: string;
-  readonly className?: string;
 };
 
 /**
- * Minimalist Tabular Odometer Number: quietly suspended at board corners,
- * glides vertically with a crisp spring impulse whenever value changes.
+ * Strictly aligned Tabular Odometer Counter: fixed height, explicit inner-edge alignment
+ * so 1-digit and 2-digit numbers maintain identical clearance from the board bezel.
  */
 export function RollingNumber({
   value,
   active = false,
   winner = false,
+  align,
   accentColor,
-  className = '',
 }: RollingNumberProps) {
   const prevRef = useRef<number>(value);
   const [prevValue, setPrevValue] = useState<number | null>(null);
@@ -30,27 +30,30 @@ export function RollingNumber({
       setPrevValue(prevRef.current);
       prevRef.current = value;
       setAnimSerial((s) => s + 1);
-      const timer = window.setTimeout(() => setPrevValue(null), 340);
+      const timer = window.setTimeout(() => setPrevValue(null), 320);
       return () => window.clearTimeout(timer);
     }
   }, [value]);
 
+  const alignClass = align === 'right' ? 'justify-end text-right' : 'justify-start text-left';
+
   return (
     <div
-      className={`relative inline-flex h-6 items-center justify-center overflow-hidden tabular-nums select-none transition-all duration-300 ${className}`}
+      className={`relative flex h-5 w-9 items-center overflow-hidden tabular-nums select-none transition-all duration-300 ${alignClass}`}
       style={{
         color: winner || active ? accentColor : 'var(--fg-muted)',
-        opacity: winner ? 1 : active ? 0.95 : 0.42,
-        transform: winner ? 'scale(1.22)' : active ? 'scale(1.06)' : 'scale(1)',
-        textShadow: winner ? `0 0 18px ${accentColor}` : 'none',
+        opacity: winner ? 1 : active ? 0.96 : 0.42,
+        transform: winner ? 'scale3d(1.16, 1.16, 1)' : 'scale3d(1, 1, 1)',
+        transformOrigin: align === 'right' ? 'right center' : 'left center',
+        textShadow: winner ? `0 0 14px ${accentColor}` : 'none',
       }}
     >
       {prevValue !== null && (
         <span
           key={`out-${animSerial}`}
-          className="absolute inset-0 flex items-center justify-center text-xs font-semibold tracking-wider"
+          className={`absolute inset-0 flex items-center text-[12px] font-semibold tracking-wider ${alignClass}`}
           style={{
-            animation: `${direction > 0 ? 'roll-out-up' : 'roll-out-down'} 320ms var(--ease-spring) forwards`,
+            animation: `${direction > 0 ? 'rn-out-up' : 'rn-out-down'} 300ms var(--ease-spring) forwards`,
           }}
         >
           {prevValue}
@@ -58,11 +61,11 @@ export function RollingNumber({
       )}
       <span
         key={`in-${animSerial}`}
-        className="text-xs font-semibold tracking-wider"
+        className="text-[12px] font-semibold tracking-wider leading-none"
         style={
           prevValue !== null
             ? {
-                animation: `${direction > 0 ? 'roll-in-up' : 'roll-in-down'} 320ms var(--ease-spring) both`,
+                animation: `${direction > 0 ? 'rn-in-up' : 'rn-in-down'} 300ms var(--ease-spring) both`,
               }
             : undefined
         }
@@ -71,21 +74,21 @@ export function RollingNumber({
       </span>
 
       <style>{`
-        @keyframes roll-out-up {
-          0% { transform: translateY(0); opacity: 0.9; }
-          100% { transform: translateY(-110%); opacity: 0; }
+        @keyframes rn-out-up {
+          0% { transform: translate3d(0, 0, 0); opacity: 0.9; }
+          100% { transform: translate3d(0, -105%, 0); opacity: 0; }
         }
-        @keyframes roll-in-up {
-          0% { transform: translateY(110%); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
+        @keyframes rn-in-up {
+          0% { transform: translate3d(0, 105%, 0); opacity: 0; }
+          100% { transform: translate3d(0, 0, 0); opacity: 1; }
         }
-        @keyframes roll-out-down {
-          0% { transform: translateY(0); opacity: 0.9; }
-          100% { transform: translateY(110%); opacity: 0; }
+        @keyframes rn-out-down {
+          0% { transform: translate3d(0, 0, 0); opacity: 0.9; }
+          100% { transform: translate3d(0, 105%, 0); opacity: 0; }
         }
-        @keyframes roll-in-down {
-          0% { transform: translateY(-110%); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
+        @keyframes rn-in-down {
+          0% { transform: translate3d(0, -105%, 0); opacity: 0; }
+          100% { transform: translate3d(0, 0, 0); opacity: 1; }
         }
       `}</style>
     </div>

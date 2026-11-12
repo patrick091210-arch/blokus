@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef } from 'react';
-import type { CSSProperties } from 'react';
 import { PIECES_BY_SIZE_DESC, getShape, getShapeHandle } from '../engine/index.ts';
 import type { PieceDefinition, Point } from '../engine/index.ts';
+import { ConnectedPolyominoFigure } from './AcrylicPieceCell.tsx';
 
 export type TransformAnimEvent = {
   readonly serial: number;
@@ -45,48 +45,9 @@ function resolveBoardPointFromClient(clientX: number, clientY: number): Point | 
   };
 }
 
-const DockPolyominoGlyph = memo(function DockPolyominoGlyph({
-  pieceId,
-  color,
-  unit = 9,
-}: {
-  readonly pieceId: string;
-  readonly color: string;
-  readonly unit?: number;
-}) {
-  const shape = getShape(pieceId, 0, false);
-  const maxX = Math.max(0, ...shape.map((c) => c.x));
-  const maxY = Math.max(0, ...shape.map((c) => c.y));
-  const cols = maxX + 1;
-  const rows = maxY + 1;
-  const filled = new Set(shape.map((c) => `${c.x},${c.y}`));
-
-  return (
-    <div
-      className="grid gap-[1.5px]"
-      style={{
-        gridTemplateColumns: `repeat(${cols}, ${unit}px)`,
-        gridTemplateRows: `repeat(${rows}, ${unit}px)`,
-      }}
-    >
-      {Array.from({ length: rows * cols }, (_, idx) => {
-        const x = idx % cols;
-        const y = Math.floor(idx / cols);
-        const on = filled.has(`${x},${y}`);
-        return (
-          <span
-            key={idx}
-            className={on ? 'acrylic-tile rounded-[2px]' : 'opacity-0'}
-            style={on ? ({ '--tile-color': color } as CSSProperties) : undefined}
-          />
-        );
-      })}
-    </div>
-  );
-});
-
 /**
- * Cursor-following 3D Acrylic Held Piece with WAAPI true 3D spin (90°) and 3D flip (180°).
+ * Cursor-following Monolithic Acrylic Piece: elevated scale(1.04), 135° offset drop shadow,
+ * and GPU WAAPI true 3D spin (90°) + 3D flip (180°).
  */
 function HeldFloatingPiece({
   pieceId,
@@ -115,70 +76,55 @@ function HeldFloatingPiece({
     if (transformEvent.kind === 'flip') {
       el.animate(
         [
-          { transform: 'perspective(540px) translateZ(26px) rotateY(-180deg) scale(1.12)' },
-          { transform: 'perspective(540px) translateZ(34px) rotateY(-90deg) scale(1.16)', offset: 0.48 },
-          { transform: 'perspective(540px) translateZ(0px) rotateY(0deg) scale(1)' },
+          { transform: 'perspective(540px) translateZ(24px) rotateY(-180deg) scale3d(1.1, 1.1, 1)' },
+          { transform: 'perspective(540px) translateZ(34px) rotateY(-90deg) scale3d(1.14, 1.14, 1)', offset: 0.48 },
+          { transform: 'perspective(540px) translateZ(0px) rotateY(0deg) scale3d(1.04, 1.04, 1)' },
         ],
-        { duration: 270, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+        { duration: 260, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
       );
     } else {
       const startDeg = transformEvent.kind === 'cw' ? -90 : 90;
       el.animate(
         [
-          { transform: `perspective(540px) rotateZ(${startDeg}deg) scale(1.07)` },
-          { transform: 'perspective(540px) rotateZ(0deg) scale(1)' },
+          { transform: `perspective(540px) rotateZ(${startDeg}deg) scale3d(1.09, 1.09, 1)` },
+          { transform: 'perspective(540px) rotateZ(0deg) scale3d(1.04, 1.04, 1)' },
         ],
-        { duration: 215, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+        { duration: 210, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
       );
     }
   }, [transformEvent]);
 
   const shape = getShape(pieceId, rotation, flipped);
   const handle = getShapeHandle(shape);
-  const maxX = Math.max(0, ...shape.map((c) => c.x));
-  const maxY = Math.max(0, ...shape.map((c) => c.y));
-  const cols = maxX + 1;
-  const rows = maxY + 1;
-  const filled = new Set(shape.map((c) => `${c.x},${c.y}`));
-  const cellPx = 22;
-
-  const offsetX = (handle.x + 0.5) * cellPx;
-  const offsetY = (handle.y + 0.5) * cellPx;
+  const cellPx = 24;
+  const offsetX = Math.round((handle.x + 0.5) * cellPx);
+  const offsetY = Math.round((handle.y + 0.5) * cellPx);
 
   return (
     <div
       className="pointer-events-none fixed left-0 top-0 z-50"
       style={{
-        transform: `translate3d(${(pointerClient.x - offsetX).toFixed(1)}px, ${(pointerClient.y - offsetY).toFixed(1)}px, 0)`,
+        transform: `translate3d(${Math.round(pointerClient.x - offsetX)}px, ${Math.round(pointerClient.y - offsetY)}px, 0)`,
+        willChange: 'transform',
       }}
     >
       <div
         ref={animRef}
         style={{
+          transform: 'scale3d(1.04, 1.04, 1)',
           transformStyle: 'preserve-3d',
-          filter: 'drop-shadow(0 14px 20px rgba(0, 0, 0, 0.38))',
+          filter: 'drop-shadow(7px 14px 16px rgba(0, 0, 0, 0.46))',
         }}
       >
-        <div
-          className="grid gap-[2px]"
-          style={{
-            gridTemplateColumns: `repeat(${cols}, ${cellPx - 2}px)`,
-            gridTemplateRows: `repeat(${rows}, ${cellPx - 2}px)`,
-          }}
-        >
-          {Array.from({ length: rows * cols }, (_, idx) => {
-            const x = idx % cols;
-            const y = Math.floor(idx / cols);
-            const on = filled.has(`${x},${y}`);
-            return (
-              <span
-                key={idx}
-                className={on ? 'acrylic-tile rounded-[3px]' : 'opacity-0'}
-                style={on ? ({ '--tile-color': color } as CSSProperties) : undefined}
-              />
-            );
-          })}
-        </div>
+        <ConnectedPolyominoFigure
+          pieceId={pieceId}
+          rotation={rotation}
+          flipped={flipped}
+          color={color}
+          unitPx={cellPx}
+          cornerRadiusPx={3}
+          showFacet
+        />
       </div>
     </div>
   );
@@ -250,14 +196,14 @@ export const PieceTray = memo(function PieceTray({
     <>
       <div
         aria-label="Piece dock"
-        className="flex flex-wrap items-center justify-center content-center gap-x-4 gap-y-3.5 px-2 transition-all duration-500 lg:max-w-[270px]"
+        className="flex flex-wrap items-center justify-center content-center gap-x-4 gap-y-3.5 px-2 transition-all duration-500 max-w-[340px] lg:w-[272px]"
         style={{
-          opacity: isGameOver ? 0 : canHumanAct ? 1 : 0.18,
+          opacity: isGameOver ? 0 : canHumanAct ? 1 : 0.2,
           transform: isGameOver
-            ? 'translate3d(0, 12px, 0) scale(0.95)'
+            ? 'translate3d(0, 12px, 0) scale3d(0.95, 0.95, 1)'
             : canHumanAct
               ? 'translate3d(0, 0, 0)'
-              : 'translate3d(0, 4px, 0) scale(0.97)',
+              : 'translate3d(0, 4px, 0) scale3d(0.97, 0.97, 1)',
           pointerEvents: canHumanAct && !isGameOver ? 'auto' : 'none',
           transitionTimingFunction: 'var(--ease-spring)',
         }}
@@ -281,14 +227,22 @@ export const PieceTray = memo(function PieceTray({
               aria-label={piece.id}
               className="group relative flex items-center justify-center p-1.5 touch-none transition-all duration-300"
               style={{
-                opacity: !playable ? 0.14 : isHeld ? 0.22 : 0.92,
-                transform: isHeld ? 'scale(0.86)' : 'scale(1)',
-                filter: !playable ? 'saturate(0.25)' : 'none',
+                opacity: !playable ? 0.14 : isHeld ? 0.2 : 0.94,
+                transform: isHeld ? 'scale3d(0.86, 0.86, 1)' : 'scale3d(1, 1, 1)',
+                filter: !playable
+                  ? 'saturate(0.2)'
+                  : 'drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.28))',
                 transitionTimingFunction: 'var(--ease-spring)',
               }}
             >
               <div className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:scale-110">
-                <DockPolyominoGlyph pieceId={piece.id} color={color} unit={8.5} />
+                <ConnectedPolyominoFigure
+                  pieceId={piece.id}
+                  color={color}
+                  unitPx={10}
+                  cornerRadiusPx={2}
+                  showFacet
+                />
               </div>
             </button>
           );
