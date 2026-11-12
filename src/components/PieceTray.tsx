@@ -1,27 +1,26 @@
-import { memo, useRef } from 'react';
-import { PIECE_GROUPS_DESC, getShape } from '../engine/index.ts';
-import type { PieceDefinition, PieceSize, Point } from '../engine/index.ts';
+import { memo, useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
+import { PIECES_BY_SIZE_DESC, getShape, getShapeHandle } from '../engine/index.ts';
+import type { PieceDefinition, Point } from '../engine/index.ts';
+
+export type TransformAnimEvent = {
+  readonly serial: number;
+  readonly kind: 'cw' | 'ccw' | 'flip';
+};
 
 type PieceTrayProps = {
   readonly color: string;
-  readonly colorId: number;
-  readonly colorblindMode: boolean;
   readonly available: readonly string[];
   readonly playablePieces: ReadonlySet<string>;
   readonly selectedPiece: string | null;
+  readonly isPiecePickedUp: boolean;
   readonly rotation: number;
   readonly flipped: boolean;
-  readonly sizeFilter: PieceSize | null;
+  readonly transformEvent: TransformAnimEvent;
+  readonly pointerClient: { readonly x: number; readonly y: number } | null;
   readonly canHumanAct: boolean;
-  readonly canUndo: boolean;
-  readonly canRedo: boolean;
-  readonly onSelectPiece: (pieceId: string) => void;
-  readonly onRotate: () => void;
-  readonly onFlip: () => void;
-  readonly onConfirmPlace: () => void;
-  readonly onSetSizeFilter: (size: PieceSize | null) => void;
-  readonly onUndo: () => void;
-  readonly onRedo: () => void;
+  readonly isGameOver: boolean;
+  readonly onPickPiece: (pieceId: string, clientX: number, clientY: number) => void;
   readonly onDragBoardPoint: (point: Point | null) => void;
   readonly onDropAtBoardPoint: (point: Point) => void;
 };
@@ -46,22 +45,16 @@ function resolveBoardPointFromClient(clientX: number, clientY: number): Point | 
   };
 }
 
-const MiniPieceThumb = memo(function MiniPieceThumb({
+const DockPolyominoGlyph = memo(function DockPolyominoGlyph({
   pieceId,
-  rotation,
-  flipped,
   color,
-  colorId,
-  colorblindMode,
+  unit = 9,
 }: {
   readonly pieceId: string;
-  readonly rotation: number;
-  readonly flipped: boolean;
   readonly color: string;
-  readonly colorId: number;
-  readonly colorblindMode: boolean;
+  readonly unit?: number;
 }) {
-  const shape = getShape(pieceId, rotation, flipped);
+  const shape = getShape(pieceId, 0, false);
   const maxX = Math.max(0, ...shape.map((c) => c.x));
   const maxY = Math.max(0, ...shape.map((c) => c.y));
   const cols = maxX + 1;
@@ -72,8 +65,8 @@ const MiniPieceThumb = memo(function MiniPieceThumb({
     <div
       className="grid gap-[1.5px]"
       style={{
-        gridTemplateColumns: `repeat(${cols}, 9px)`,
-        gridTemplateRows: `repeat(${rows}, 9px)`,
+        gridTemplateColumns: `repeat(${cols}, ${unit}px)`,
+        gridTemplateRows: `repeat(${rows}, ${unit}px)`,
       }}
     >
       {Array.from({ length: rows * cols }, (_, idx) => {
@@ -83,10 +76,8 @@ const MiniPieceThumb = memo(function MiniPieceThumb({
         return (
           <span
             key={idx}
-            className={`rounded-[1.5px] ${
-              on ? (colorblindMode ? `cb-pattern-${colorId % 4}` : '') : 'opacity-0'
-            }`}
-            style={on ? { backgroundColor: color } : undefined}
+            className={on ? 'acrylic-tile rounded-[2px]' : 'opacity-0'}
+            style={on ? ({ '--tile-color': color } as CSSProperties) : undefined}
           />
         );
       })}
@@ -94,222 +85,226 @@ const MiniPieceThumb = memo(function MiniPieceThumb({
   );
 });
 
+/**
+ * Cursor-following 3D Acrylic Held Piece with WAAPI true 3D spin (90°) and 3D flip (180°).
+ */
+function HeldFloatingPiece({
+  pieceId,
+  rotation,
+  flipped,
+  color,
+  transformEvent,
+  pointerClient,
+}: {
+  readonly pieceId: string;
+  readonly rotation: number;
+  readonly flipped: boolean;
+  readonly color: string;
+  readonly transformEvent: TransformAnimEvent;
+  readonly pointerClient: { readonly x: number; readonly y: number };
+}) {
+  const animRef = useRef<HTMLDivElement | null>(null);
+  const lastSerialRef = useRef<number>(transformEvent.serial);
+
+  useEffect(() => {
+    if (transformEvent.serial === lastSerialRef.current) return;
+    lastSerialRef.current = transformEvent.serial;
+    const el = animRef.current;
+    if (!el || typeof el.animate !== 'function') return;
+
+    if (transformEvent.kind === 'flip') {
+      el.animate(
+        [
+          { transform: 'perspective(540px) translateZ(26px) rotateY(-180deg) scale(1.12)' },
+          { transform: 'perspective(540px) translateZ(34px) rotateY(-90deg) scale(1.16)', offset: 0.48 },
+          { transform: 'perspective(540px) translateZ(0px) rotateY(0deg) scale(1)' },
+        ],
+        { duration: 270, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+      );
+    } else {
+      const startDeg = transformEvent.kind === 'cw' ? -90 : 90;
+      el.animate(
+        [
+          { transform: `perspective(540px) rotateZ(${startDeg}deg) scale(1.07)` },
+          { transform: 'perspective(540px) rotateZ(0deg) scale(1)' },
+        ],
+        { duration: 215, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+      );
+    }
+  }, [transformEvent]);
+
+  const shape = getShape(pieceId, rotation, flipped);
+  const handle = getShapeHandle(shape);
+  const maxX = Math.max(0, ...shape.map((c) => c.x));
+  const maxY = Math.max(0, ...shape.map((c) => c.y));
+  const cols = maxX + 1;
+  const rows = maxY + 1;
+  const filled = new Set(shape.map((c) => `${c.x},${c.y}`));
+  const cellPx = 22;
+
+  const offsetX = (handle.x + 0.5) * cellPx;
+  const offsetY = (handle.y + 0.5) * cellPx;
+
+  return (
+    <div
+      className="pointer-events-none fixed left-0 top-0 z-50"
+      style={{
+        transform: `translate3d(${(pointerClient.x - offsetX).toFixed(1)}px, ${(pointerClient.y - offsetY).toFixed(1)}px, 0)`,
+      }}
+    >
+      <div
+        ref={animRef}
+        style={{
+          transformStyle: 'preserve-3d',
+          filter: 'drop-shadow(0 14px 20px rgba(0, 0, 0, 0.38))',
+        }}
+      >
+        <div
+          className="grid gap-[2px]"
+          style={{
+            gridTemplateColumns: `repeat(${cols}, ${cellPx - 2}px)`,
+            gridTemplateRows: `repeat(${rows}, ${cellPx - 2}px)`,
+          }}
+        >
+          {Array.from({ length: rows * cols }, (_, idx) => {
+            const x = idx % cols;
+            const y = Math.floor(idx / cols);
+            const on = filled.has(`${x},${y}`);
+            return (
+              <span
+                key={idx}
+                className={on ? 'acrylic-tile rounded-[3px]' : 'opacity-0'}
+                style={on ? ({ '--tile-color': color } as CSSProperties) : undefined}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const PieceTray = memo(function PieceTray({
   color,
-  colorId,
-  colorblindMode,
   available,
   playablePieces,
   selectedPiece,
+  isPiecePickedUp,
   rotation,
   flipped,
-  sizeFilter,
+  transformEvent,
+  pointerClient,
   canHumanAct,
-  canUndo,
-  canRedo,
-  onSelectPiece,
-  onRotate,
-  onFlip,
-  onConfirmPlace,
-  onSetSizeFilter,
-  onUndo,
-  onRedo,
+  isGameOver,
+  onPickPiece,
   onDragBoardPoint,
   onDropAtBoardPoint,
 }: PieceTrayProps) {
   const availSet = new Set(available);
-  const dragStateRef = useRef<{
+  const remainingPieces = PIECES_BY_SIZE_DESC.filter((p) => availSet.has(p.id));
+  const dragRef = useRef<{
     pieceId: string;
     startX: number;
     startY: number;
-    dragging: boolean;
+    dragged: boolean;
   } | null>(null);
 
-  const startPointerDrag = (piece: PieceDefinition, e: React.PointerEvent<HTMLButtonElement>) => {
-    if (!canHumanAct || !availSet.has(piece.id) || e.button === 2) return;
+  const handlePointerDown = (piece: PieceDefinition, e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!canHumanAct || e.button === 2) return;
+    if (!playablePieces.has(piece.id)) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragStateRef.current = {
+    onPickPiece(piece.id, e.clientX, e.clientY);
+    dragRef.current = {
       pieceId: piece.id,
       startX: e.clientX,
       startY: e.clientY,
-      dragging: false,
+      dragged: false,
     };
   };
 
-  const movePointerDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
-    const st = dragStateRef.current;
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const st = dragRef.current;
     if (!st) return;
-    const dist = Math.hypot(e.clientX - st.startX, e.clientY - st.startY);
-    if (!st.dragging && dist > 7) {
-      st.dragging = true;
-      if (selectedPiece !== st.pieceId) {
-        onSelectPiece(st.pieceId);
-      }
+    if (!st.dragged && Math.hypot(e.clientX - st.startX, e.clientY - st.startY) > 7) {
+      st.dragged = true;
     }
-    if (st.dragging) {
+    if (st.dragged) {
       onDragBoardPoint(resolveBoardPointFromClient(e.clientX, e.clientY));
     }
   };
 
-  const endPointerDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
-    const st = dragStateRef.current;
-    dragStateRef.current = null;
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const st = dragRef.current;
+    dragRef.current = null;
     if (!st) return;
-    if (st.dragging) {
+    if (st.dragged) {
       const dropPt = resolveBoardPointFromClient(e.clientX, e.clientY);
       onDragBoardPoint(null);
       if (dropPt) {
         onDropAtBoardPoint(dropPt);
       }
-    } else {
-      onSelectPiece(st.pieceId);
     }
   };
 
   return (
-    <section
-      aria-label="Piece tray"
-      className="flex flex-col rounded-2xl bg-[#141f26]/95 p-3.5 ring-1 ring-white/10"
-    >
-      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-            Tray ({available.length}/21)
-          </span>
-          <span className="text-[11px] text-slate-400">
-            · {playablePieces.size} playable
-          </span>
-        </div>
+    <>
+      <div
+        aria-label="Piece dock"
+        className="flex flex-wrap items-center justify-center content-center gap-x-4 gap-y-3.5 px-2 transition-all duration-500 lg:max-w-[270px]"
+        style={{
+          opacity: isGameOver ? 0 : canHumanAct ? 1 : 0.18,
+          transform: isGameOver
+            ? 'translate3d(0, 12px, 0) scale(0.95)'
+            : canHumanAct
+              ? 'translate3d(0, 0, 0)'
+              : 'translate3d(0, 4px, 0) scale(0.97)',
+          pointerEvents: canHumanAct && !isGameOver ? 'auto' : 'none',
+          transitionTimingFunction: 'var(--ease-spring)',
+        }}
+      >
+        {remainingPieces.map((piece) => {
+          const playable = playablePieces.has(piece.id);
+          const isHeld = isPiecePickedUp && selectedPiece === piece.id;
 
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => onSetSizeFilter(null)}
-            className={`rounded-md px-2 py-0.5 text-[11px] font-bold transition ${
-              sizeFilter === null ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-400 hover:text-white'
-            }`}
-          >
-            All
-          </button>
-          {([5, 4, 3, 2, 1] as PieceSize[]).map((sz) => (
+          return (
             <button
-              key={sz}
+              key={piece.id}
               type="button"
-              onClick={() => onSetSizeFilter(sz)}
-              className={`rounded-md px-2 py-0.5 text-[11px] font-bold transition ${
-                sizeFilter === sz ? 'bg-amber-400 text-slate-950' : 'bg-white/5 text-slate-400 hover:text-white'
-              }`}
-              title={`Filter ${sz}-square pieces (Shortcut ${sz})`}
+              disabled={!canHumanAct || !playable}
+              onPointerDown={(e) => handlePointerDown(piece, e)}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={() => {
+                dragRef.current = null;
+                onDragBoardPoint(null);
+              }}
+              aria-label={piece.id}
+              className="group relative flex items-center justify-center p-1.5 touch-none transition-all duration-300"
+              style={{
+                opacity: !playable ? 0.14 : isHeld ? 0.22 : 0.92,
+                transform: isHeld ? 'scale(0.86)' : 'scale(1)',
+                filter: !playable ? 'saturate(0.25)' : 'none',
+                transitionTimingFunction: 'var(--ease-spring)',
+              }}
             >
-              {sz}■
+              <div className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:scale-110">
+                <DockPolyominoGlyph pieceId={piece.id} color={color} unit={8.5} />
+              </div>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      <div className="mb-3 grid grid-cols-5 gap-1.5">
-        <button
-          type="button"
-          disabled={!canHumanAct || !selectedPiece}
-          onClick={onRotate}
-          className="rounded-xl bg-white/8 py-2 text-xs font-bold text-slate-100 ring-1 ring-white/10 transition hover:bg-white/15 disabled:opacity-35"
-        >
-          ↻ Rotate
-        </button>
-        <button
-          type="button"
-          disabled={!canHumanAct || !selectedPiece}
-          onClick={onFlip}
-          className="rounded-xl bg-white/8 py-2 text-xs font-bold text-slate-100 ring-1 ring-white/10 transition hover:bg-white/15 disabled:opacity-35"
-        >
-          ⇄ Mirror
-        </button>
-        <button
-          type="button"
-          disabled={!canHumanAct || !selectedPiece}
-          onClick={onConfirmPlace}
-          className="rounded-xl bg-amber-400/90 py-2 text-xs font-black text-slate-950 transition hover:bg-amber-300 disabled:opacity-35"
-        >
-          ✓ Place
-        </button>
-        <button
-          type="button"
-          disabled={!canUndo}
-          onClick={onUndo}
-          className="rounded-xl bg-white/8 py-2 text-xs font-bold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/15 disabled:opacity-35"
-        >
-          ↶ Undo
-        </button>
-        <button
-          type="button"
-          disabled={!canRedo}
-          onClick={onRedo}
-          className="rounded-xl bg-white/8 py-2 text-xs font-bold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/15 disabled:opacity-35"
-        >
-          ↷ Redo
-        </button>
-      </div>
-
-      <div className="max-h-[48vh] space-y-2.5 overflow-y-auto pr-1">
-        {PIECE_GROUPS_DESC.filter((g) => sizeFilter === null || g.size === sizeFilter).map((group) => (
-          <div key={group.size}>
-            <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              {group.size}-Square Polyominoes
-            </div>
-            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6 lg:grid-cols-4">
-              {group.pieces.map((piece) => {
-                const isAvail = availSet.has(piece.id);
-                const isSelected = selectedPiece === piece.id && isAvail;
-                const isPlayable = isAvail && playablePieces.has(piece.id);
-
-                return (
-                  <button
-                    key={piece.id}
-                    type="button"
-                    disabled={!canHumanAct || !isAvail}
-                    onPointerDown={(e) => startPointerDrag(piece, e)}
-                    onPointerMove={movePointerDrag}
-                    onPointerUp={endPointerDrag}
-                    onPointerCancel={() => {
-                      dragStateRef.current = null;
-                      onDragBoardPoint(null);
-                    }}
-                    title={
-                      !isAvail
-                        ? `${piece.id} (Placed)`
-                        : !isPlayable
-                          ? `${piece.id} — Dead piece (no legal pocket on board)`
-                          : `${piece.id} (${piece.size} squares) — Click to select/rotate, or drag onto board`
-                    }
-                    className={`relative flex min-h-[54px] flex-col items-center justify-center rounded-xl p-1.5 transition select-none touch-none ${
-                      !isAvail
-                        ? 'bg-black/20 opacity-20 grayscale'
-                        : isSelected
-                          ? 'bg-white/15 ring-2 ring-amber-400 shadow-md'
-                          : !isPlayable
-                            ? 'bg-rose-950/20 opacity-40 ring-1 ring-rose-400/20'
-                            : 'bg-white/[0.045] ring-1 ring-white/10 hover:bg-white/10'
-                    }`}
-                  >
-                    <MiniPieceThumb
-                      pieceId={piece.id}
-                      rotation={isSelected ? rotation : 0}
-                      flipped={isSelected ? flipped : false}
-                      color={color}
-                      colorId={colorId}
-                      colorblindMode={colorblindMode}
-                    />
-                    <span className="mt-1 text-[9px] font-bold tracking-wider text-slate-400">
-                      {piece.id}
-                      {isAvail && !isPlayable ? ' · ×' : ''}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+      {canHumanAct && isPiecePickedUp && selectedPiece && pointerClient && (
+        <HeldFloatingPiece
+          pieceId={selectedPiece}
+          rotation={rotation}
+          flipped={flipped}
+          color={color}
+          transformEvent={transformEvent}
+          pointerClient={pointerClient}
+        />
+      )}
+    </>
   );
 });

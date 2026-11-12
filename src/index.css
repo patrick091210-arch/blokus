@@ -1,91 +1,235 @@
 @import "tailwindcss";
 
-:root {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #f1f1eb;
-  background: #0f171c;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  color-scheme: dark;
+:root,
+[data-theme="dark"] {
+  --bg-canvas: #0d1116;
+  --bg-glow: rgba(38, 52, 66, 0.38);
+  --fg-primary: #eef0ed;
+  --fg-muted: rgba(238, 240, 237, 0.42);
+  --fg-whisper: rgba(238, 240, 237, 0.2);
+  --board-surface: #131920;
+  --board-cell: #151c24;
+  --board-groove: rgba(255, 255, 255, 0.042);
+  --board-obstacle: rgba(255, 255, 255, 0.07);
+  --board-shadow:
+    0 30px 70px -18px rgba(0, 0, 0, 0.78),
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --card-surface: rgba(255, 255, 255, 0.03);
+  --card-surface-hover: rgba(255, 255, 255, 0.06);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --ao-shadow: rgba(0, 0, 0, 0.62);
+  --shockwave-rgb: 220, 238, 255;
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-gravity: cubic-bezier(0.58, 0.04, 0.94, 0.44);
+}
+
+[data-theme="light"] {
+  --bg-canvas: #f2efe9;
+  --bg-glow: rgba(255, 255, 255, 0.9);
+  --fg-primary: #181e24;
+  --fg-muted: rgba(24, 30, 36, 0.44);
+  --fg-whisper: rgba(24, 30, 36, 0.22);
+  --board-surface: #e5e1d8;
+  --board-cell: #ebe7df;
+  --board-groove: rgba(20, 26, 32, 0.062);
+  --board-obstacle: rgba(20, 26, 32, 0.12);
+  --board-shadow:
+    0 28px 60px -20px rgba(24, 30, 38, 0.18),
+    0 0 0 1px rgba(20, 26, 32, 0.07),
+    inset 0 2px 4px rgba(0, 0, 0, 0.04);
+  --card-surface: rgba(255, 255, 255, 0.62);
+  --card-surface-hover: rgba(255, 255, 255, 0.88);
+  --card-border: rgba(20, 26, 32, 0.08);
+  --ao-shadow: rgba(24, 30, 38, 0.24);
+  --shockwave-rgb: 40, 56, 72;
 }
 
 * {
   box-sizing: border-box;
 }
 
-body {
+html,
+body,
+#root {
+  width: 100vw;
+  height: 100vh;
   margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background: #0f171c;
+  padding: 0;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: Inter, "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg-canvas);
+  color: var(--fg-primary);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 button:focus-visible {
-  outline: 2px solid #fbbf24;
-  outline-offset: 2px;
+  outline: 1.5px solid var(--fg-muted);
+  outline-offset: 4px;
+  border-radius: 6px;
 }
 
-button:disabled {
-  cursor: not-allowed;
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-/* Tactile translucent crystal polyomino tile */
-.board-tile {
-  background-color: var(--tile-color, #42b6ff);
-  background-image: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.26) 0%,
-    rgba(255, 255, 255, 0.03) 48%,
-    rgba(0, 0, 0, 0.24) 100%
-  );
+/* Studio Matte Canvas Atmosphere */
+.studio-canvas {
+  background:
+    radial-gradient(circle at 50% 46%, var(--bg-glow) 0%, transparent 64%),
+    var(--bg-canvas);
+  transition: background-color 420ms var(--ease-spring), color 420ms var(--ease-spring);
+}
+
+/* Translucent Acrylic / Gemstone Unit Tile */
+.acrylic-tile {
+  position: relative;
+  background-color: color-mix(in srgb, var(--tile-color, #38a8ff) 86%, transparent);
+  background-image:
+    radial-gradient(125% 125% at 26% 20%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.06) 45%, transparent 65%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.22) 0%, rgba(0, 0, 0, 0.22) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+    inset 1.2px 1.2px 0.6px rgba(255, 255, 255, 0.56),
+    inset -1.2px -1.6px 1px rgba(0, 0, 0, 0.3),
+    0 3px 8px -1px color-mix(in srgb, var(--tile-color, #38a8ff) 38%, rgba(0, 0, 0, 0.36));
+  backdrop-filter: blur(2px);
 }
 
-/* Colorblind-friendly distinct geometric overlays for the 4 colors */
-.cb-pattern-0 {
-  background-image:
-    repeating-linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.32) 0px,
-      rgba(255, 255, 255, 0.32) 2px,
-      transparent 2px,
-      transparent 6px
-    ),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.2));
+/* 3D Extruded Hexahedral Voxel Prism for Slam Choreography */
+.voxel-prism {
+  position: absolute;
+  transform-style: preserve-3d;
 }
 
-.cb-pattern-1 {
+.voxel-face-front {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  transform: translateZ(var(--prism-depth, 18px));
+  background-color: var(--tile-color);
   background-image:
-    radial-gradient(circle, rgba(15, 23, 28, 0.55) 22%, transparent 25%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.2));
-  background-size: 7px 7px, 100% 100%;
+    radial-gradient(120% 120% at 25% 20%, rgba(255, 255, 255, 0.55) 0%, transparent 58%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.24), rgba(0, 0, 0, 0.2));
+  box-shadow:
+    inset 1.5px 1.5px 0.5px rgba(255, 255, 255, 0.65),
+    inset -1.5px -1.5px 1px rgba(0, 0, 0, 0.32);
 }
 
-.cb-pattern-2 {
-  background-image:
-    repeating-linear-gradient(
-      -45deg,
-      rgba(15, 23, 28, 0.45) 0px,
-      rgba(15, 23, 28, 0.45) 2px,
-      transparent 2px,
-      transparent 6px
-    ),
-    repeating-linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.22) 0px,
-      rgba(255, 255, 255, 0.22) 1.5px,
-      transparent 1.5px,
-      transparent 6px
-    );
+.voxel-face-top {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--prism-depth, 18px);
+  transform-origin: top center;
+  transform: translateZ(var(--prism-depth, 18px)) rotateX(-90deg);
+  background: color-mix(in srgb, var(--tile-color) 78%, white 22%);
 }
 
-.cb-pattern-3 {
-  background-image:
-    linear-gradient(90deg, rgba(15, 23, 28, 0.42) 2px, transparent 2px),
-    linear-gradient(0deg, rgba(15, 23, 28, 0.42) 2px, transparent 2px);
-  background-size: 6px 6px;
+.voxel-face-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--prism-depth, 18px);
+  transform-origin: bottom center;
+  transform: translateZ(var(--prism-depth, 18px)) rotateX(90deg);
+  background: color-mix(in srgb, var(--tile-color) 62%, black 38%);
+}
+
+.voxel-face-left {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--prism-depth, 18px);
+  transform-origin: center left;
+  transform: translateZ(var(--prism-depth, 18px)) rotateY(90deg);
+  background: color-mix(in srgb, var(--tile-color) 86%, white 14%);
+}
+
+.voxel-face-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: var(--prism-depth, 18px);
+  transform-origin: center right;
+  transform: translateZ(var(--prism-depth, 18px)) rotateY(-90deg);
+  background: color-mix(in srgb, var(--tile-color) 70%, black 30%);
+}
+
+@keyframes logo-breathe {
+  0%, 100% {
+    transform: translate3d(0, 0px, 0);
+  }
+  50% {
+    transform: translate3d(0, -5px, 0);
+  }
+}
+
+@keyframes corner-breathe {
+  0%, 100% {
+    opacity: 0.42;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes tile-land {
+  0% {
+    transform: scale(1.14);
+    filter: brightness(1.25);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes victory-shimmer {
+  0% {
+    filter: brightness(1);
+    transform: scale(1);
+  }
+  38% {
+    filter: brightness(1.55);
+    transform: scale(1.07);
+  }
+  100% {
+    filter: brightness(1.08);
+    transform: scale(1);
+  }
+}
+
+.animate-logo-breathe {
+  animation: logo-breathe 6.4s ease-in-out infinite;
+}
+
+.animate-corner-breathe {
+  animation: corner-breathe 2.8s ease-in-out infinite;
+}
+
+.animate-tile-land {
+  animation: tile-land 280ms var(--ease-spring) both;
+}
+
+.animate-victory-wave {
+  animation: victory-shimmer 820ms var(--ease-spring) both;
 }

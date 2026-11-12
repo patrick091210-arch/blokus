@@ -93,17 +93,10 @@ test('Blitz clock increments on placement and flags seat on timeout, and Base64U
   state = matchReducer(state, { type: 'TICK_CLOCK', elapsedMs: 10_000 });
   assert.equal(state.clocksMs?.[0], 170_000);
 
-  // Player 1 places opening move -> receives +3s Fisher increment (173_000 ms) and triggers handoff to Player 2
+  // Player 1 places opening move -> receives +3s Fisher increment (173_000 ms) and seamlessly passes turn to Player 2
   state = matchReducer(state, { type: 'CONFIRM_CURSOR_PLACE', snap: true });
   assert.equal(state.clocksMs?.[0], 173_000);
   assert.equal(state.turn, 1);
-  assert.equal(state.handoff, true);
-
-  // Clock does NOT tick during handoff screen
-  state = matchReducer(state, { type: 'TICK_CLOCK', elapsedMs: 5_000 });
-  assert.equal(state.clocksMs?.[1], 180_000);
-
-  state = matchReducer(state, { type: 'READY_HANDOFF' });
   assert.equal(state.handoff, false);
 
   // Player 2 flags on time -> marked passed, returns turn to Player 1

@@ -221,16 +221,9 @@ function advanceAfterMoveOrTimeout(
     };
   }
 
-  const prevController = players[actingColorId]?.controllerId ?? -1;
   const nextPlayer = players[nextTurn];
   const nextIsHuman = nextPlayer.isHuman && !nextPlayer.aiAutoplay;
-  const needsHandoff =
-    nextIsHuman &&
-    (state.config.mode === 'pass_play' ||
-      state.config.mode === 'duo_coop' ||
-      (state.config.opponentType === 'human' &&
-        (state.config.mode === 'blokus_duo' || state.config.mode === 'tournament_1v1'))) &&
-    prevController !== nextPlayer.controllerId;
+  const needsHandoff = false;
 
   const sel = nextIsHuman
     ? prepareTurnSelection(board, nextPlayer, state.sizeFilter)

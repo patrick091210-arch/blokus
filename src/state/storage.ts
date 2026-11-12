@@ -42,6 +42,8 @@ export type MatchScoreRecord = {
   readonly date: string;
 };
 
+export type SurfaceTheme = 'dark' | 'light';
+
 export type UserPreferences = {
   readonly soundMuted: boolean;
   readonly colorblindMode: boolean;
@@ -49,6 +51,8 @@ export type UserPreferences = {
   readonly showCornerHints: boolean;
   readonly showTerritoryOverlay: boolean;
   readonly snapToCorner: boolean;
+  readonly surfaceTheme: SurfaceTheme;
+  readonly hasUsedTransform: boolean;
 };
 
 const ACTIVE_MATCH_KEY = 'blokus-active-match-v2';
@@ -64,6 +68,8 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   showCornerHints: true,
   showTerritoryOverlay: false,
   snapToCorner: true,
+  surfaceTheme: 'dark',
+  hasUsedTransform: false,
 };
 
 function getStorage(): Storage | null {
@@ -91,6 +97,8 @@ export function loadPreferences(): UserPreferences {
       showCornerHints: parsed.showCornerHints ?? true,
       showTerritoryOverlay: Boolean(parsed.showTerritoryOverlay),
       snapToCorner: parsed.snapToCorner ?? true,
+      surfaceTheme: parsed.surfaceTheme === 'light' ? 'light' : 'dark',
+      hasUsedTransform: Boolean(parsed.hasUsedTransform),
     };
   } catch {
     return DEFAULT_PREFERENCES;

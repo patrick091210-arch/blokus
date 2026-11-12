@@ -1,47 +1,47 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import {
-  CONTESTED_TERRITORY,
-  EMPTY_CELL,
   OBSTACLE_CELL,
   PLAYER_COLORS,
-  computeTerritoryMap,
-  getCornerHints,
+  countRemainingSquares,
   hasColorStarted,
   resolveGhostPlacement,
 } from '../engine/index.ts';
 import type { BoardState, ColorPlayerState, Point } from '../engine/index.ts';
 import type { LastPlacementInfo } from '../state/matchTypes.ts';
+import { RollingNumber } from './RollingNumber.tsx';
 
 type BoardStageProps = {
   readonly board: BoardState;
   readonly players: readonly ColorPlayerState[];
   readonly turn: number;
+  readonly isGameOver: boolean;
+  readonly winnerColorIds: ReadonlySet<number>;
   readonly canHumanAct: boolean;
+  readonly isPiecePickedUp: boolean;
   readonly selectedPiece: string | null;
   readonly rotation: number;
   readonly flipped: boolean;
-  readonly cursor: Point;
   readonly externalDragPoint: Point | null;
   readonly lastMove: LastPlacementInfo | null;
-  readonly colorblindMode: boolean;
-  readonly showCornerHints: boolean;
-  readonly showTerritoryOverlay: boolean;
-  readonly snapToCorner: boolean;
-  readonly onPlaceAtPointer: (pointer: Point, isTouch: boolean) => void;
+  readonly onPlaceAtPointer: (pointer: Point) => void;
   readonly onRotate: (delta: 1 | -1) => void;
   readonly onFlip: () => void;
 };
 
-type CommittedGridProps = {
-  readonly size: number;
-  readonly cells: readonly number[];
-  readonly startAnchors: readonly Point[];
-  readonly mustCoverStart: boolean;
-  readonly playerColors: readonly string[];
-  readonly lastMoveKeySet: ReadonlySet<number>;
-  readonly colorblindMode: boolean;
-};
+const CORNER_POSITIONS_4P = [
+  '-top-7 -left-7',
+  '-top-7 -right-7',
+  '-bottom-7 -right-7',
+  '-bottom-7 -left-7',
+] as const;
+
+const CORNER_AURA_POS_4P = [
+  '-top-12 -left-12',
+  '-top-12 -right-12',
+  '-bottom-12 -right-12',
+  '-bottom-12 -left-12',
+] as const;
 
 const CommittedBoardGrid = memo(function CommittedBoardGrid({
   size,
@@ -50,14 +50,24 @@ const CommittedBoardGrid = memo(function CommittedBoardGrid({
   mustCoverStart,
   playerColors,
   lastMoveKeySet,
-  colorblindMode,
-}: CommittedGridProps) {
+  isGameOver,
+  winnerColorIds,
+}: {
+  readonly size: number;
+  readonly cells: readonly number[];
+  readonly startAnchors: readonly Point[];
+  readonly mustCoverStart: boolean;
+  readonly playerColors: readonly string[];
+  readonly lastMoveKeySet: ReadonlySet<number>;
+  readonly isGameOver: boolean;
+  readonly winnerColorIds: ReadonlySet<number>;
+}) {
   const startOwnerByIdx = useMemo(() => {
     const map = new Map<number, number>();
     if (!mustCoverStart) return map;
-    startAnchors.forEach((pt, colorId) => {
+    startAnchors.forEach((pt, cid) => {
       if (pt.x >= 0 && pt.y >= 0 && pt.x < size && pt.y < size) {
-        map.set(pt.y * size + pt.x, colorId);
+        map.set(pt.y * size + pt.x, cid);
       }
     });
     return map;
@@ -65,44 +75,62 @@ const CommittedBoardGrid = memo(function CommittedBoardGrid({
 
   return (
     <div
-      className="grid h-full w-full"
+      className="grid h-full w-full p-[2px]"
       style={{
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${size}, minmax(0, 1fr))`,
       }}
     >
       {cells.map((owner, idx) => {
-        const startOwner = startOwnerByIdx.get(idx);
-        const isLast = lastMoveKeySet.has(idx);
+        const x = idx % size;
+        const y = (idx - x) / size;
+
         if (owner === OBSTACLE_CELL) {
           return (
             <div
               key={idx}
-              className="border border-white/[0.06] bg-slate-800/90 shadow-inner"
-              title="Blocked cell"
+              className="m-[0.5px] rounded-[2px]"
+              style={{ background: 'var(--board-obstacle)' }}
             />
           );
         }
+
         if (owner >= 0) {
-          const tileColor = playerColors[owner] ?? PLAYER_COLORS[owner] ?? '#42b6ff';
+          const tileColor = playerColors[owner] ?? PLAYER_COLORS[owner] ?? '#38a8ff';
+          const isLast = lastMoveKeySet.has(idx);
+          const isVictoryWave = isGameOver && winnerColorIds.has(owner);
+
           return (
             <div
               key={idx}
-              className={`board-tile border border-black/30 ${
-                colorblindMode ? `cb-pattern-${owner % 4}` : ''
-              } ${isLast ? 'ring-1 ring-white/80 z-[2]' : ''}`}
-              style={{ '--tile-color': tileColor } as CSSProperties}
+              className={`acrylic-tile m-[0.75px] rounded-[2.5px] ${
+                isLast ? 'animate-tile-land' : ''
+              } ${isVictoryWave ? 'animate-victory-wave' : ''}`}
+              style={
+                {
+                  '--tile-color': tileColor,
+                  animationDelay: isVictoryWave ? `${(x + y) * 26}ms` : undefined,
+                } as CSSProperties
+              }
             />
           );
         }
+
+        const startOwner = startOwnerByIdx.get(idx);
         return (
-          <div key={idx} className="relative border border-white/[0.06] bg-[#141f26]/80">
+          <div
+            key={idx}
+            className="relative m-[0.5px] rounded-[1.5px]"
+            style={{
+              background: 'var(--board-cell)',
+              boxShadow: 'inset 0 0 0 0.5px var(--board-groove)',
+            }}
+          >
             {startOwner !== undefined && (
               <span
-                className="pointer-events-none absolute inset-[26%] rounded-full opacity-80 ring-2"
+                className="pointer-events-none absolute inset-[36%] rounded-full opacity-55"
                 style={{
-                  backgroundColor: `${playerColors[startOwner] ?? '#fff'}33`,
-                  borderColor: playerColors[startOwner] ?? '#fff',
+                  backgroundColor: playerColors[startOwner] ?? PLAYER_COLORS[startOwner] ?? '#fff',
                 }}
               />
             )}
@@ -113,108 +141,19 @@ const CommittedBoardGrid = memo(function CommittedBoardGrid({
   );
 });
 
-const TacticalOverlay = memo(function TacticalOverlay({
-  board,
-  turn,
-  playerColors,
-  showCornerHints,
-  showTerritoryOverlay,
-  canHumanAct,
-}: {
-  readonly board: BoardState;
-  readonly turn: number;
-  readonly playerColors: readonly string[];
-  readonly showCornerHints: boolean;
-  readonly showTerritoryOverlay: boolean;
-  readonly canHumanAct: boolean;
-}) {
-  const territory = useMemo(
-    () => (showTerritoryOverlay ? computeTerritoryMap(board) : null),
-    [board, showTerritoryOverlay],
-  );
-  const cornerHints = useMemo(
-    () => (showCornerHints && canHumanAct ? getCornerHints(board, turn) : []),
-    [board, canHumanAct, showCornerHints, turn],
-  );
-
-  if (!territory && cornerHints.length === 0) return null;
-
-  const { size } = board;
-  const activeColor = playerColors[turn] ?? '#42b6ff';
-
-  return (
-    <div className="pointer-events-none absolute inset-0 z-[3]">
-      {territory && (
-        <div
-          className="grid h-full w-full"
-          style={{
-            gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
-            gridTemplateRows: `repeat(${size}, minmax(0, 1fr))`,
-          }}
-        >
-          {Array.from({ length: size * size }, (_, idx) => {
-            if (board.cells[idx] !== EMPTY_CELL) return <div key={idx} />;
-            const owner = territory.ownerByCell[idx];
-            if (owner === CONTESTED_TERRITORY) {
-              return <div key={idx} className="bg-white/[0.09]" />;
-            }
-            if (owner >= 0) {
-              const dist = territory.distanceByCell[idx];
-              const alpha = Math.max(0.08, 0.32 - (dist - 1) * 0.035);
-              return (
-                <div
-                  key={idx}
-                  style={{
-                    backgroundColor: playerColors[owner] ?? '#fff',
-                    opacity: alpha,
-                  }}
-                />
-              );
-            }
-            return <div key={idx} />;
-          })}
-        </div>
-      )}
-
-      {cornerHints.map((pt) => (
-        <div
-          key={`${pt.x},${pt.y}`}
-          className="absolute flex items-center justify-center"
-          style={{
-            left: `${(pt.x / size) * 100}%`,
-            top: `${(pt.y / size) * 100}%`,
-            width: `${100 / size}%`,
-            height: `${100 / size}%`,
-          }}
-        >
-          <span
-            className="h-2 w-2 rotate-45 rounded-[1px] shadow-sm animate-pulse"
-            style={{
-              backgroundColor: activeColor,
-              boxShadow: `0 0 8px ${activeColor}`,
-            }}
-          />
-        </div>
-      ))}
-    </div>
-  );
-});
-
 export function BoardStage({
   board,
   players,
   turn,
+  isGameOver,
+  winnerColorIds,
   canHumanAct,
+  isPiecePickedUp,
   selectedPiece,
   rotation,
   flipped,
-  cursor,
   externalDragPoint,
   lastMove,
-  colorblindMode,
-  showCornerHints,
-  showTerritoryOverlay,
-  snapToCorner,
   onPlaceAtPointer,
   onRotate,
   onFlip,
@@ -224,13 +163,11 @@ export function BoardStage({
 
   const playerColors = useMemo(() => players.map((p) => p.color), [players]);
   const lastMoveKeySet = useMemo(() => {
-    const set = new Set<number>();
+    const s = new Set<number>();
     if (lastMove) {
-      for (const c of lastMove.cells) {
-        set.add(c.y * board.size + c.x);
-      }
+      for (const c of lastMove.cells) s.add(c.y * board.size + c.x);
     }
-    return set;
+    return s;
   }, [board.size, lastMove]);
 
   const clientCoordsToCell = useCallback(
@@ -246,24 +183,25 @@ export function BoardStage({
       ) {
         return null;
       }
-      const x = Math.min(
-        board.size - 1,
-        Math.max(0, Math.floor(((clientX - rect.left) / rect.width) * board.size)),
-      );
-      const y = Math.min(
-        board.size - 1,
-        Math.max(0, Math.floor(((clientY - rect.top) / rect.height) * board.size)),
-      );
-      return { x, y };
+      return {
+        x: Math.min(
+          board.size - 1,
+          Math.max(0, Math.floor(((clientX - rect.left) / rect.width) * board.size)),
+        ),
+        y: Math.min(
+          board.size - 1,
+          Math.max(0, Math.floor(((clientY - rect.top) / rect.height) * board.size)),
+        ),
+      };
     },
     [board.size],
   );
 
-  const activePointer = externalDragPoint ?? hoverPoint ?? cursor;
+  const activePointer = externalDragPoint ?? hoverPoint;
   const started = useMemo(() => hasColorStarted(board, turn), [board, turn]);
 
   const ghost = useMemo(() => {
-    if (!canHumanAct || !selectedPiece) return null;
+    if (!canHumanAct || !isPiecePickedUp || !selectedPiece || !activePointer) return null;
     return resolveGhostPlacement(
       board,
       turn,
@@ -272,42 +210,90 @@ export function BoardStage({
       flipped,
       activePointer,
       started,
-      snapToCorner ? 2 : 0,
+      2,
     );
-  }, [activePointer, board, canHumanAct, flipped, rotation, selectedPiece, snapToCorner, started, turn]);
+  }, [activePointer, board, canHumanAct, flipped, isPiecePickedUp, rotation, selectedPiece, started, turn]);
 
-  const activeColor = players[turn]?.color ?? '#42b6ff';
+  const activeColor = players[turn]?.color ?? PLAYER_COLORS[0];
+  const getCornerSlotIndex = (playerIdx: number): number => {
+    if (players.length === 2) return playerIdx === 0 ? 0 : 2;
+    return playerIdx % 4;
+  };
 
   return (
-    <div className="relative flex flex-col items-center justify-center">
+    <div
+      className="relative flex items-center justify-center transition-transform duration-700"
+      style={{
+        transform: isGameOver ? 'translate3d(0, -12px, 0) scale(0.94)' : 'translate3d(0, 0, 0) scale(1)',
+        transitionTimingFunction: 'var(--ease-spring)',
+      }}
+    >
+      {/* Active Turn Ambient Corner Breathing Glow (Zero Text!) */}
+      {!isGameOver && players[turn] && (
+        <div
+          className={`pointer-events-none absolute h-36 w-36 rounded-full blur-2xl animate-corner-breathe transition-all duration-500 ${
+            CORNER_AURA_POS_4P[getCornerSlotIndex(turn)]
+          }`}
+          style={{
+            background: `radial-gradient(circle, ${activeColor}55 0%, transparent 72%)`,
+          }}
+        />
+      )}
+
+      {/* Four Outer Corner Suspended Remaining-Square Counters */}
+      {players.map((p) => {
+        const slotIdx = getCornerSlotIndex(p.id);
+        const remaining = countRemainingSquares(p.available);
+        return (
+          <div
+            key={p.id}
+            className={`pointer-events-none absolute z-20 ${CORNER_POSITIONS_4P[slotIdx]}`}
+          >
+            <RollingNumber
+              value={remaining}
+              active={!isGameOver && p.id === turn}
+              winner={isGameOver && winnerColorIds.has(p.id)}
+              accentColor={p.color}
+            />
+          </div>
+        );
+      })}
+
+      {/* Main Sculptural Recessed Board */}
       <div
         ref={stageRef}
         data-board-stage="true"
         data-board-size={board.size}
         onPointerMove={(e) => {
-          if (e.pointerType === 'touch') return;
           const pt = clientCoordsToCell(e.clientX, e.clientY);
           setHoverPoint((prev) => (prev?.x === pt?.x && prev?.y === pt?.y ? prev : pt));
         }}
         onPointerLeave={() => setHoverPoint(null)}
         onPointerDown={(e) => {
           if (e.button === 2) return;
+          if (!canHumanAct || !isPiecePickedUp || !selectedPiece) return;
           const pt = clientCoordsToCell(e.clientX, e.clientY);
-          if (pt) {
-            onPlaceAtPointer(pt, e.pointerType === 'touch');
-          }
+          if (pt) onPlaceAtPointer(pt);
         }}
         onContextMenu={(e) => {
           e.preventDefault();
-          onFlip();
+          if (canHumanAct && isPiecePickedUp) onFlip();
         }}
         onWheel={(e) => {
-          if (!canHumanAct || !selectedPiece) return;
-          if (Math.abs(e.deltaY) > 4) {
+          if (!canHumanAct || !isPiecePickedUp || !selectedPiece) return;
+          if (Math.abs(e.deltaY) > 3) {
             onRotate(e.deltaY > 0 ? 1 : -1);
           }
         }}
-        className="relative aspect-square w-full max-w-[min(74vh,620px)] select-none overflow-hidden rounded-2xl bg-[#0d151a] shadow-2xl ring-1 ring-white/15 touch-none cursor-crosshair"
+        style={{
+          width: 'min(64vmin, 540px)',
+          height: 'min(64vmin, 540px)',
+          background: 'var(--board-surface)',
+          boxShadow: 'var(--board-shadow)',
+        }}
+        className={`relative aspect-square overflow-hidden rounded-2xl touch-none ${
+          canHumanAct && isPiecePickedUp ? 'cursor-none' : 'cursor-default'
+        }`}
       >
         <CommittedBoardGrid
           size={board.size}
@@ -316,20 +302,13 @@ export function BoardStage({
           mustCoverStart={board.mustCoverStart}
           playerColors={playerColors}
           lastMoveKeySet={lastMoveKeySet}
-          colorblindMode={colorblindMode}
+          isGameOver={isGameOver}
+          winnerColorIds={winnerColorIds}
         />
 
-        <TacticalOverlay
-          board={board}
-          turn={turn}
-          playerColors={playerColors}
-          showCornerHints={showCornerHints}
-          showTerritoryOverlay={showTerritoryOverlay}
-          canHumanAct={canHumanAct}
-        />
-
+        {/* Soft Magnetic Ghost Projection (Zero Error Popups!) */}
         {ghost && (
-          <div className="pointer-events-none absolute inset-0 z-[4]">
+          <div className="pointer-events-none absolute inset-0 z-10 p-[2px]">
             {ghost.shape.map((cell, i) => {
               const gx = ghost.anchor.x + cell.x;
               const gy = ghost.anchor.y + cell.y;
@@ -338,33 +317,20 @@ export function BoardStage({
               return (
                 <div
                   key={i}
-                  className={`absolute rounded-[3px] transition-all duration-75 ${
-                    valid
-                      ? 'ring-2 ring-white/90 shadow-lg'
-                      : 'ring-2 ring-rose-400/95 bg-rose-500/45'
-                  }`}
+                  className="absolute rounded-[2.5px] transition-all duration-100"
                   style={{
                     left: `${(gx / board.size) * 100}%`,
                     top: `${(gy / board.size) * 100}%`,
                     width: `${100 / board.size}%`,
                     height: `${100 / board.size}%`,
-                    backgroundColor: valid ? `${activeColor}b8` : undefined,
+                    backgroundColor: valid ? `${activeColor}8c` : `${activeColor}26`,
+                    boxShadow: valid
+                      ? `inset 0 0 0 1.2px rgba(255,255,255,0.78), 0 0 12px ${activeColor}66`
+                      : 'inset 0 0 0 1px rgba(255, 84, 104, 0.58)',
                   }}
                 />
               );
             })}
-
-            {!ghost.validation.valid && (hoverPoint || externalDragPoint) && ghost.validation.reason && (
-              <div
-                className="absolute z-[6] -translate-x-1/2 -translate-y-full rounded-lg bg-rose-950/95 px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap text-rose-100 shadow-lg ring-1 ring-rose-400/50"
-                style={{
-                  left: `${Math.min(82, Math.max(18, ((ghost.anchor.x + 1) / board.size) * 100))}%`,
-                  top: `${Math.max(8, (ghost.anchor.y / board.size) * 100 - 2)}%`,
-                }}
-              >
-                {ghost.validation.reason}
-              </div>
-            )}
           </div>
         )}
       </div>
