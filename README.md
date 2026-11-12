@@ -9,7 +9,7 @@
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare_Workers-Edge-f38020?style=flat-square&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-10b981?style=flat-square)](./LICENSE)
 
-> **▶ Live Demo（在线试玩）：[https://blokus.workers.dev](https://blokus.workers.dev)** *(Deploying...)*
+> **▶ Live Demo（在线试玩）：[https://blokus.patrick091210.workers.dev](https://blokus.patrick091210.workers.dev)**
 
 ---
 
